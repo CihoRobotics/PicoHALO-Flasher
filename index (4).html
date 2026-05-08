@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PicoHALO Web Flasher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --bg:#080808;--s1:#101010;--s2:#161616;--border:#1e1e1e;--border2:#2a2a2a;
+  --accent:#00e5ff;--adim:rgba(0,229,255,0.07);--aborder:rgba(0,229,255,0.15);
+  --text:#ddd;--muted:#555;--muted2:#333;--green:#00c97d;--red:#ff4444;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+
+/* NAV */
+header{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:52px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(8,8,8,0.95);backdrop-filter:blur(16px);z-index:50}
+.logo{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase;text-decoration:none}
+.logo em{color:#444;font-style:normal}
+.nav-links{display:flex;align-items:center;gap:1.75rem}
+.nav-links a{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);text-decoration:none;text-transform:uppercase;transition:color 0.15s}
+.nav-links a:hover{color:var(--text)}
+
+/* HERO */
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:5rem 1.5rem 3.5rem;border-bottom:1px solid var(--border)}
+.hero-tag{font-family:var(--mono);font-size:9px;letter-spacing:0.3em;color:var(--accent);text-transform:uppercase;margin-bottom:1.25rem;opacity:0.7}
+.hero h1{font-family:var(--mono);font-size:clamp(2rem,7vw,4rem);font-weight:700;color:#fff;letter-spacing:-0.04em;line-height:1;margin-bottom:1rem}
+.hero h1 em{color:var(--accent);font-style:normal}
+.hero-sub{font-size:14px;font-weight:300;color:var(--muted);max-width:400px;margin-bottom:2rem;line-height:1.75}
+.badge-row{display:flex;flex-wrap:wrap;justify-content:center;gap:7px}
+.badge{font-family:var(--mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:3px;border:1px solid var(--border2);color:var(--muted)}
+
+/* MAIN LAYOUT */
+.main-wrap{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:3.5rem 1.5rem 5rem}
+.flasher{width:100%;max-width:520px}
+
+/* LABELS */
+.step-label{font-family:var(--mono);font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem}
+.section-title{font-family:var(--mono);font-size:13px;color:#fff;margin-bottom:1.25rem;font-weight:700}
+.select-group{margin-bottom:2.25rem}
+
+/* OPTIONS */
+.options{display:grid;gap:8px}
+.options-2{grid-template-columns:1fr 1fr}
+.opt{display:flex;align-items:center;gap:11px;padding:13px 15px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;transition:border-color 0.15s,background 0.15s;user-select:none;background:var(--s1)}
+.opt:hover{border-color:#2e2e2e;background:var(--s2)}
+.opt.selected{border-color:var(--accent);background:var(--adim)}
+.opt input[type=radio]{display:none}
+.opt-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;transition:border-color 0.15s,background 0.15s;position:relative}
+.opt.selected .opt-dot{border-color:var(--accent);background:var(--accent)}
+.opt.selected .opt-dot::after{content:'';position:absolute;inset:3px;border-radius:50%;background:#000}
+.opt-body{flex:1;min-width:0}
+.opt-name{font-family:var(--mono);font-size:12px;color:#bbb;font-weight:700;line-height:1.2}
+.opt.selected .opt-name{color:#fff}
+.opt-desc{font-size:11px;color:var(--muted);margin-top:2px;font-weight:300}
+.wifi-pill{font-family:var(--mono);font-size:8px;letter-spacing:0.06em;padding:2px 6px;border-radius:2px;border:1px solid rgba(124,92,252,0.3);color:#a78bfa;background:rgba(124,92,252,0.08);flex-shrink:0}
+.unit-opt .opt-name{font-size:16px}
+
+.fdivider{height:1px;background:var(--border);margin:2rem 0}
+
+/* SUMMARY */
+.summary{background:var(--s1);border:1px solid var(--border2);border-radius:7px;padding:1.1rem 1.4rem;margin-bottom:1.5rem}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+.summary-row:not(:last-child){border-bottom:1px solid var(--border)}
+.summary-key{font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+.summary-val{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.summary-val.empty{color:var(--muted2)}
+
+/* DOWNLOAD BUTTON */
+.dl-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:16px;
+  font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+  background:var(--accent);color:#000;font-weight:700;
+  border:none;border-radius:6px;cursor:pointer;
+  transition:opacity 0.15s,transform 0.1s;
+  text-decoration:none;
+}
+.dl-btn:hover{opacity:0.87}
+.dl-btn:active{transform:scale(0.99)}
+.dl-btn.disabled{opacity:0.18;pointer-events:none}
+.dl-icon{font-size:15px}
+
+/* AFTER DOWNLOAD — STEPS PANEL */
+.steps-panel{display:none;margin-top:2rem;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.steps-panel.visible{display:block}
+.steps-panel-header{background:var(--s1);padding:1rem 1.4rem;border-bottom:1px solid var(--border)}
+.steps-panel-title{font-family:var(--mono);font-size:11px;color:#aaa;font-weight:700;letter-spacing:0.05em}
+.steps-panel-sub{font-size:12px;color:var(--muted);margin-top:3px;font-weight:300}
+.steps-panel-body{padding:1.4rem;background:var(--bg)}
+
+.t-step{display:grid;grid-template-columns:28px 1fr;gap:12px;margin-bottom:1.1rem;align-items:start}
+.t-step:last-child{margin-bottom:0}
+.t-num{font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--adim);border:1px solid var(--aborder);border-radius:4px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.t-text{font-size:13px;color:#888;font-weight:300;line-height:1.7}
+.t-text strong{color:#ccc;font-weight:500}
+.t-text code{font-family:var(--mono);font-size:10.5px;background:var(--s2);color:var(--accent);padding:1px 6px;border-radius:3px;border:1px solid var(--border2)}
+
+.t-divider{height:1px;background:var(--border);margin:1.1rem 0}
+
+/* VISUAL DIAGRAM */
+.diagram{background:var(--s1);border:1px solid var(--border2);border-radius:7px;padding:1.25rem;margin:1rem 0;font-family:var(--mono);font-size:11px}
+.diagram-title{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.diagram-row{display:flex;align-items:center;gap:8px;padding:6px 0;color:#888}
+.diagram-row:not(:last-child){border-bottom:1px solid var(--border)}
+.d-num{color:var(--accent);min-width:18px;font-weight:700}
+.d-arrow{color:var(--muted2)}
+.d-text{color:#999}
+.d-text strong{color:#ccc}
+
+/* DONE BOX */
+.done-box{background:rgba(0,201,125,0.06);border:1px solid rgba(0,201,125,0.18);border-radius:7px;padding:1.1rem 1.4rem;margin-top:1rem;display:flex;gap:10px;align-items:flex-start}
+.done-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.done-text{font-size:13px;color:#6ee7b7;font-weight:300;line-height:1.65}
+.done-text strong{font-weight:500}
+
+/* LINKS */
+.links-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:1.75rem 1.5rem;border-top:1px solid var(--border)}
+.link-item{display:flex;align-items:center;gap:8px;text-decoration:none;padding:9px 15px;border:1px solid var(--border2);border-radius:5px;background:var(--s1);transition:border-color 0.15s,background 0.15s}
+.link-item:hover{border-color:#2e2e2e;background:var(--s2)}
+.link-icon{font-size:13px;opacity:0.55}
+.link-text{font-family:var(--mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)}
+.link-item:hover .link-text{color:#888}
+
+footer{border-top:1px solid var(--border);padding:1.25rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem}
+.foot-l{font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#252525}
+.foot-r{font-family:var(--mono);font-size:9px;color:#1e1e1e}
+
+@media(max-width:500px){
+  .options-2{grid-template-columns:1fr}
+  header{padding:0 1rem}
+  .hero{padding:3.5rem 1rem 2.5rem}
+  .nav-links{gap:1rem}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">Pico<em>HALO</em></a>
+  <div class="nav-links">
+    <a href="https://github.com/CihoRobotics/PicoHALO" target="_blank">Source ↗</a>
+    <a href="https://github.com/CihoRobotics/PicoHALO/releases" target="_blank">Manual ↗</a>
+    <a href="https://github.com/CihoRobotics" target="_blank">GitHub ↗</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-tag">// Web Flasher · v1.0</div>
+  <h1>Flash <em>PicoHALO</em></h1>
+  <p class="hero-sub">Select your board and temperature unit. Download the firmware. Drag it onto your Pico. Done — no installs, no drivers, no hassle.</p>
+  <div class="badge-row">
+    <span class="badge">No drivers needed</span>
+    <span class="badge">No software install</span>
+    <span class="badge">Works on Windows · Mac · Linux</span>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <div class="flasher">
+
+    <!-- STEP 1: BOARD -->
+    <div class="select-group">
+      <div class="step-label">Step 1 of 3</div>
+      <div class="section-title">Select your board</div>
+      <div class="options options-2" id="board-options">
+        <label class="opt" data-val="pico">
+          <input type="radio" name="board" value="pico"/>
+          <div class="opt-dot"></div>
+          <div class="opt-body">
+            <div class="opt-name">Pico</div>
+            <div class="opt-desc">RP2040 · Original</div>
+          </div>
+        </label>
+        <label class="opt" data-val="picow">
+          <input type="radio" name="board" value="picow"/>
+          <div class="opt-dot"></div>
+          <div class="opt-body">
+            <div class="opt-name">Pico W</div>
+            <div class="opt-desc">RP2040 · Wi-Fi</div>
+          </div>
+          <div class="wifi-pill">Wi-Fi</div>
+        </label>
+        <label class="opt" data-val="pico2">
+          <input type="radio" name="board" value="pico2"/>
+          <div class="opt-dot"></div>
+          <div class="opt-body">
+            <div class="opt-name">Pico 2</div>
+            <div class="opt-desc">RP2350 · Faster</div>
+          </div>
+        </label>
+        <label class="opt" data-val="pico2w">
+          <input type="radio" name="board" value="pico2w"/>
+          <div class="opt-dot"></div>
+          <div class="opt-body">
+            <div class="opt-name">Pico 2W</div>
+            <div class="opt-desc">RP2350 · Wi-Fi</div>
+          </div>
+          <div class="wifi-pill">Wi-Fi</div>
+        </label>
+      </div>
+    </div>
+
+    <div class="fdivider"></div>
+
+    <!-- STEP 2: UNIT -->
+    <div class="select-group">
+      <div class="step-label">Step 2 of 3</div>
+      <div class="section-title">Select temperature unit</div>
+      <div class="options options-2" id="unit-options">
+        <label class="opt unit-opt" data-val="C">
+          <input type="radio" name="unit" value="C"/>
+          <div class="opt-dot"></div>
+          <div class="opt-body">
+            <div class="opt-name">°C</div>
+            <div class="opt-desc">Celsius · EU &amp; global</div>
+          </div>
+        </label>
+        <label class="opt unit-opt" data-val="F">
+          <input type="radio" name="unit" value="F"/>
+          <div class="opt-dot"></div>
+          <div class="opt-body">
+            <div class="opt-name">°F</div>
+            <div class="opt-desc">Fahrenheit · USA</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="fdivider"></div>
+
+    <!-- STEP 3: DOWNLOAD -->
+    <div class="select-group">
+      <div class="step-label">Step 3 of 3</div>
+      <div class="section-title">Download &amp; Flash</div>
+
+      <div class="summary">
+        <div class="summary-row">
+          <span class="summary-key">Board</span>
+          <span class="summary-val empty" id="sum-board">— not selected</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Temperature</span>
+          <span class="summary-val empty" id="sum-unit">— not selected</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">File</span>
+          <span class="summary-val empty" id="sum-file">— waiting for selection</span>
+        </div>
+      </div>
+
+      <a class="dl-btn disabled" id="dl-btn" href="#" download>
+        <span class="dl-icon">↓</span>
+        <span id="dl-label">Select board &amp; unit first</span>
+      </a>
+
+      <!-- AFTER DOWNLOAD TUTORIAL -->
+      <div class="steps-panel" id="steps-panel">
+        <div class="steps-panel-header">
+          <div class="steps-panel-title">Now install it on your Pico</div>
+          <div class="steps-panel-sub">Follow these 3 simple steps — takes about 30 seconds</div>
+        </div>
+        <div class="steps-panel-body">
+
+          <div class="t-step">
+            <div class="t-num">1</div>
+            <div class="t-text">
+              <strong>Unplug your Pico</strong> from USB if it is currently connected.
+            </div>
+          </div>
+
+          <div class="t-step">
+            <div class="t-num">2</div>
+            <div class="t-text">
+              <strong>Hold the BOOTSEL button</strong> — the small white button on top of the board — then <strong>plug in the USB cable</strong> while still holding it. Release the button once plugged in.
+              Your Pico will appear as a USB drive called <code>RPI-RP2</code> on your computer, just like a USB stick.
+            </div>
+          </div>
+
+          <div class="t-step">
+            <div class="t-num">3</div>
+            <div class="t-text">
+              <strong>Open that <code>RPI-RP2</code> drive</strong> and <strong>drag the downloaded <code id="filename-hint">.uf2</code> file straight into it.</strong>
+              The drive disappears automatically — that means it worked.
+              PicoHALO boots up on its own. You are done!
+            </div>
+          </div>
+
+          <div class="t-divider"></div>
+
+          <div class="diagram">
+            <div class="diagram-title">What you should see</div>
+            <div class="diagram-row"><span class="d-num">1</span><span class="d-arrow">→</span><span class="d-text">Hold BOOTSEL + plug USB</span></div>
+            <div class="diagram-row"><span class="d-num">2</span><span class="d-arrow">→</span><span class="d-text"><strong style="color:#ccc">RPI-RP2</strong> drive appears on your computer</span></div>
+            <div class="diagram-row"><span class="d-num">3</span><span class="d-arrow">→</span><span class="d-text">Drag <strong id="filename-hint2">.uf2</strong> into the drive</span></div>
+            <div class="diagram-row"><span class="d-num">4</span><span class="d-arrow">→</span><span class="d-text">Drive disappears — Pico reboots</span></div>
+            <div class="diagram-row"><span class="d-num">5</span><span class="d-arrow">→</span><span class="d-text"><strong style="color:var(--accent)">PicoHALO starts ✓</strong></span></div>
+          </div>
+
+          <div class="done-box">
+            <span class="done-icon">💡</span>
+            <div class="done-text"><strong>Tip:</strong> If the <code>RPI-RP2</code> drive does not appear, try a different USB cable. Some cables carry power only and have no data wires — your Pico will charge but won't show up as a drive.</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- LINKS -->
+<div class="links-row">
+  <a class="link-item" href="https://github.com/CihoRobotics/PicoHALO" target="_blank">
+    <span class="link-icon">📁</span>
+    <span class="link-text">Source Code &amp; .ino Files</span>
+  </a>
+  <a class="link-item" href="https://github.com/CihoRobotics/PicoHALO/releases" target="_blank">
+    <span class="link-icon">📖</span>
+    <span class="link-text">User Manual</span>
+  </a>
+  <a class="link-item" href="https://github.com/CihoRobotics" target="_blank">
+    <span class="link-icon">👤</span>
+    <span class="link-text">CihoRobotics on GitHub</span>
+  </a>
+</div>
+
+<footer>
+  <span class="foot-l">PicoHALO Web Flasher · v1.0</span>
+  <span class="foot-r">by CihoRobotics</span>
+</footer>
+
+<script>
+const FIRMWARE = {
+  pico:   { C:'firmware/picohalo_pico_C.uf2',   F:'firmware/picohalo_pico_F.uf2'   },
+  picow:  { C:'firmware/picohalo_picow_C.uf2',  F:'firmware/picohalo_picow_F.uf2'  },
+  pico2:  { C:'firmware/picohalo_pico2_C.uf2',  F:'firmware/picohalo_pico2_F.uf2'  },
+  pico2w: { C:'firmware/picohalo_pico2w_C.uf2', F:'firmware/picohalo_pico2w_F.uf2' },
+};
+const BOARD_NAMES = {
+  pico:'Raspberry Pi Pico', picow:'Raspberry Pi Pico W',
+  pico2:'Raspberry Pi Pico 2', pico2w:'Raspberry Pi Pico 2W'
+};
+
+let selectedBoard = null, selectedUnit = null;
+
+document.querySelectorAll('#board-options .opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#board-options .opt').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    selectedBoard = opt.dataset.val;
+    update();
+  });
+});
+
+document.querySelectorAll('#unit-options .opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#unit-options .opt').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    selectedUnit = opt.dataset.val;
+    update();
+  });
+});
+
+function update() {
+  const sb  = document.getElementById('sum-board');
+  const su  = document.getElementById('sum-unit');
+  const sf  = document.getElementById('sum-file');
+  const btn = document.getElementById('dl-btn');
+  const lbl = document.getElementById('dl-label');
+  const panel = document.getElementById('steps-panel');
+  const fhint  = document.getElementById('filename-hint');
+  const fhint2 = document.getElementById('filename-hint2');
+
+  if (selectedBoard) { sb.textContent = BOARD_NAMES[selectedBoard]; sb.classList.remove('empty'); }
+  if (selectedUnit)  { su.textContent = selectedUnit === 'C' ? 'Celsius (°C)' : 'Fahrenheit (°F)'; su.classList.remove('empty'); }
+
+  if (selectedBoard && selectedUnit) {
+    const path = FIRMWARE[selectedBoard][selectedUnit];
+    const filename = path.split('/').pop();
+
+    sf.textContent = filename;
+    sf.classList.remove('empty');
+
+    btn.href = path;
+    btn.setAttribute('download', filename);
+    btn.classList.remove('disabled');
+    lbl.textContent = 'Download ' + filename;
+
+    fhint.textContent  = filename;
+    fhint2.textContent = filename;
+
+    panel.classList.add('visible');
+  } else {
+    sf.textContent = '— waiting for selection';
+    sf.classList.add('empty');
+    btn.href = '#';
+    btn.classList.add('disabled');
+    lbl.textContent = 'Select board & unit first';
+    panel.classList.remove('visible');
+  }
+}
+</script>
+</body>
+</html>
